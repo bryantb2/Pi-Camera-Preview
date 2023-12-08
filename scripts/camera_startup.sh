@@ -1,0 +1,10 @@
+# Use this file to start the preview window on boot
+
+
+# Extract width and height from the resolution
+resolution=$(fbset -s | grep "geometry" | awk '{print $2, $3}')
+width=$(echo $resolution | cut -d ' ' -f 1)
+height=$(echo $resolution | cut -d ' ' -f 2)
+
+# Open Pi camera preview
+rpicam-hello -t 0 --info-text 0 -f --flush --denoise auto --width $(($width)) --height $(($height))

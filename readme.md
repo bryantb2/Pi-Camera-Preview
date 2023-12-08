@@ -25,13 +25,13 @@ This script initializes a camera preview on boot for a Raspberry Pi 4 with a con
    - Make the setup script executable:
 
      ```bash
-     chmod +x configure_readonly.sh
+      chmod +x setup.sh
      ```
 
    - Execute the setup script with root privileges:
 
      ```bash
-     sudo ./configure_readonly.sh
+     ./setup.sh
      ```
 
    The script will install the necessary packages, configure the camera startup behavior, and set the Pi into "kiosk mode," preventing users from tampering with the configuration.

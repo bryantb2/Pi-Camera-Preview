@@ -5,7 +5,6 @@ echo '-------------------------------------'
 
 wget -O install_pivariety_pkgs.sh https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/install_script/install_pivariety_pkgs.sh
 chmod +x install_pivariety_pkgs.sh
-chmod +x copy_and_fill.sh
 
 echo '-------------------------------------'
 echo 'Setup utility ------- updating system'
@@ -28,16 +27,18 @@ echo '-------------------------------------'
 echo 'Setup utility ------- initializing camera startup script'
 echo '-------------------------------------'
 
-cp ./scripts/camera_startup.sh s/home/pi/startup_camera
-chmod +x startup_camera
+rm -rf ~/camera_startup
+cp ./scripts/camera_startup.sh ~/camera_startup
+chmod +x ~/camera_startup
+sudo cp ./scripts/system_startup.sh /etc/rc.local
 
 echo '-------------------------------------'
 echo 'Setup utility ------- forcing Pi into readonly mode'
 echo '-------------------------------------'
 
 # Setup the environment for readonly operations
-chmod +x configure_readonly.sh
-sudo ./configure_readonly.sh
+chmod +x readonly_setup.sh
+sudo ./readonly_setup.sh
 
 echo '-------------------------------------'
 echo 'Setup utility ------- finished configuration, restarting system'

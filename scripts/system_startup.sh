@@ -3,7 +3,7 @@
 # rc.local
 #
 # This script is executed at the end of each multiuser runlevel.
-su -l pi -c "/home/pi/camera_startup" &
+su -l pi -c "~/camera_startup" &
 # Make sure that the script will "exit 0" on success or any other
 # value on error.
 #

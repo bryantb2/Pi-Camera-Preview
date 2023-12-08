@@ -7,4 +7,4 @@ width=$(echo $resolution | cut -d ' ' -f 1)
 height=$(echo $resolution | cut -d ' ' -f 2)
 
 # Open Pi camera preview
-rpicam-hello -t 0 --info-text 0 -f --flush --denoise auto --width $(($width)) --height $(($height))
+rpicam-hello -t 0 --info-text 0 -f --flush --denoise auto --width $(($width)) --height $(($height)) --autofocus-speed fast

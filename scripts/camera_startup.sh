@@ -9,4 +9,4 @@ height=$(echo $resolution | cut -d ' ' -f 2)
 # Open Pi camera preview
 # OLD WAY: rpicam-hello -t 0 --info-text 0 -f --flush --denoise auto --width $(($width)) --height $(($height)) --autofocus-speed fast
 
-/usr/bin/python3 ~/stereo-stream.py $(($width)) $(($height))
+# TEMP: /usr/bin/python3 ~/stereo-stream.py $(($width)) $(($height))

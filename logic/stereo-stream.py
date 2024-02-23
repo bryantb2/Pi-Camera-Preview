@@ -3,17 +3,28 @@
 import cv2
 import asyncio
 import numpy as np
+import sys 
 from picamera2 import Picamera2
 
 
 async def main():
-    # TODO: force enable continuous autofocus
+    
+    # Check if the correct number of arguments are provided
+    if len(sys.argv) != 3:
+        print("Usage: script.py screenWidth screenHeight")
+        return
+    
+    # Parse screen width and height from command line arguments
+    screenWidth = int(sys.argv[1])
+    screenHeight = int(sys.argv[2])
     
     # Initialize Picamera2
     picamera2 = Picamera2()
+    
+    # TODO: force enable continuous autofocus
 
     # Configure camera resolution
-    camera_config = picamera2.create_preview_configuration(main={"size": (800, 600)})
+    camera_config = picamera2.create_preview_configuration(main={"size": (screenWidth, screenHeight)})
     picamera2.configure(camera_config)
 
     picamera2.start()

@@ -1,11 +1,8 @@
-# Advanced image processing WITH rotation for faked depth perception
-
 import cv2
 import asyncio
 import numpy as np
-import sys 
+import sys
 from picamera2 import Picamera2
-
 
 async def main():
     
@@ -21,60 +18,50 @@ async def main():
     # Initialize Picamera2
     picamera2 = Picamera2()
     
-    # TODO: force enable continuous autofocus
-
     # Configure camera resolution
     camera_config = picamera2.create_preview_configuration(main={"size": (screenWidth, screenHeight)})
     picamera2.configure(camera_config)
 
     picamera2.start()
-    
-    # Create a fullscreen window
-    cv2.namedWindow("Stereoscopic Simulation", cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty("Stereoscopic Simulation", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+
+    # Pre-calculate values outside the loop
+    space_between = int(screenWidth * 0.125)  # Adjust based on the desired spacing relative to screen width
+    canvas_width = screenWidth + space_between
+    resized_width = screenWidth // 2
+    resized_height = screenHeight // 2
+    circular_mask_diameter = min(resized_width, resized_height) // 2
+    circular_mask = np.zeros((resized_height, resized_width, 3), dtype=np.uint8)
+    cv2.circle(circular_mask, (resized_width // 2, resized_height // 2), circular_mask_diameter, (255, 255, 255), -1)
 
     while True:
-        # Capture frame-by-frame
         frame = picamera2.capture_array()
         
         # Ensure the frame is in RGB
         if frame.shape[2] == 4:
             frame = frame[:, :, :3]
 
-        # Resize the image for both left and right images
-        resized_image = cv2.resize(frame, (int(frame.shape[1] / 2), int(frame.shape[0] / 2)))
+        # Resize the image once for both eyes
+        resized_image = cv2.resize(frame, (resized_width, resized_height))
 
         # Create a blank canvas for the combined stereoscopic image
-        h, w = resized_image.shape[:2]
-        stereoscopic_image = np.zeros((h, w * 2, 3), dtype=np.uint8)
+        stereoscopic_image = np.zeros((resized_height, canvas_width, 3), dtype=np.uint8)
 
-        # Prepare the rotation for each side
-        center_left = (w // 4, h // 2)
-        center_right = (w // 4, h // 2)
-        angle_left = -5  # Rotate left image to the left
-        angle_right = 5  # Rotate right image to the right
-        scale = 1.0
-
-        # Get the rotation matrices for each rotation
-        matrix_left = cv2.getRotationMatrix2D(center_left, angle_left, scale)
-        matrix_right = cv2.getRotationMatrix2D(center_right, angle_right, scale)
-
-        # Apply the affine transformation (rotation) to create the left and right images
-        rotated_left = cv2.warpAffine(resized_image, matrix_left, (w, h), flags=cv2.INTER_LINEAR)
-        rotated_right = cv2.warpAffine(resized_image, matrix_right, (w, h), flags=cv2.INTER_LINEAR)
-
-        # Place the rotated images side by side
-        stereoscopic_image[:, :w] = rotated_left
-        stereoscopic_image[:, w:] = rotated_right
+        # Rotate and mask the image for both sides
+        for i, angle in enumerate([-5, 5]):  # Left and right angles
+            matrix = cv2.getRotationMatrix2D((resized_width // 2, resized_height // 2), angle, 1.0)
+            rotated = cv2.warpAffine(resized_image, matrix, (resized_width, resized_height), flags=cv2.INTER_LINEAR)
+            masked = cv2.bitwise_and(rotated, circular_mask)
+            
+            # Place the masked images on the canvas
+            offset = i * (resized_width + space_between)
+            stereoscopic_image[:, offset:offset+resized_width] = masked
 
         cv2.imshow('Stereoscopic Simulation', stereoscopic_image)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    # When everything done, release the capture
     picamera2.stop()
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     asyncio.run(main())
-

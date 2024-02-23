@@ -17,6 +17,10 @@ async def main():
     picamera2.configure(camera_config)
 
     picamera2.start()
+    
+    # Create a fullscreen window
+    cv2.namedWindow("Stereoscopic Simulation", cv2.WND_PROP_FULLSCREEN)
+    cv2.setWindowProperty("Stereoscopic Simulation", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     while True:
         # Capture frame-by-frame

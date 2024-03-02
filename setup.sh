@@ -10,6 +10,14 @@ echo '-------------------------------------'
 echo 'Setup utility ------- updating system'
 echo '-------------------------------------'
 
+sudo apt update
+sudo apt install xrdp
+sudo apt install python3-opencv
+sudo apt install python3-numpy
+sudo apt install python3-picamera2
+sudo apt install python3-v4l2
+sudo apt upgrade python3-picamera2
+
 sudo apt-get update && apt-get upgrade
 
 echo '-------------------------------------'

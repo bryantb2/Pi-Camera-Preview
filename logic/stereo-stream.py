@@ -1,67 +1,62 @@
-import cv2
-import asyncio
-import numpy as np
-import sys
 from picamera2 import Picamera2
+import cv2
+import numpy as np
+import threading
+import queue
 
-async def main():
-    
-    # Check if the correct number of arguments are provided
-    if len(sys.argv) != 3:
-        print("Usage: script.py screenWidth screenHeight")
-        return
-    
-    # Parse screen width and height from command line arguments
-    screenWidth = int(sys.argv[1])
-    screenHeight = int(sys.argv[2])
-    
-    # Initialize Picamera2
-    picamera2 = Picamera2()
-    
-    # Configure camera resolution
-    camera_config = picamera2.create_preview_configuration(main={"size": (screenWidth, screenHeight)})
-    picamera2.configure(camera_config)
+# Fixed separator width in pixels to simulate the width of an average human nose
+separator_width = 40  # Adjust this value based on your VR headset or preference
+shift_amount = 5  # Number of pixels to shift for the pseudo-3D effect
 
-    picamera2.start()
+def shift_image(image, pixels):
+    if pixels == 0:
+        return image
+    elif pixels > 0:
+        return np.hstack((image[:, pixels:], np.zeros((image.shape[0], pixels, 3), dtype=image.dtype)))
+    else:
+        return np.hstack((np.zeros((image.shape[0], -pixels, 3), dtype=image.dtype), image[:, :pixels]))
 
-    # Pre-calculate values outside the loop
-    space_between = int(screenWidth * 0.125)  # Adjust based on the desired spacing relative to screen width
-    canvas_width = screenWidth + space_between
-    resized_width = screenWidth // 2
-    resized_height = screenHeight // 2
-    circular_mask_diameter = min(resized_width, resized_height) // 2
-    circular_mask = np.zeros((resized_height, resized_width, 3), dtype=np.uint8)
-    cv2.circle(circular_mask, (resized_width // 2, resized_height // 2), circular_mask_diameter, (255, 255, 255), -1)
-
+def frame_capture_worker(picamera2, frame_queue):
     while True:
         frame = picamera2.capture_array()
-        
-        # Ensure the frame is in RGB
-        if frame.shape[2] == 4:
+        if frame.shape[2] == 4:  # Convert RGBA to RGB if necessary
             frame = frame[:, :, :3]
+        frame_queue.put(frame)
 
-        # Resize the image once for both eyes
-        resized_image = cv2.resize(frame, (resized_width, resized_height))
+def main():
+    picamera2 = Picamera2()
+    # Further increased resolution to 480x360
+    camera_config = picamera2.create_preview_configuration(main={"size": (480, 360)})
+    picamera2.configure(camera_config)
+    picamera2.start()
 
-        # Create a blank canvas for the combined stereoscopic image
-        stereoscopic_image = np.zeros((resized_height, canvas_width, 3), dtype=np.uint8)
+    cv2.namedWindow('VR View', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('VR View', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
-        # Rotate and mask the image for both sides
-        for i, angle in enumerate([-5, 5]):  # Left and right angles
-            matrix = cv2.getRotationMatrix2D((resized_width // 2, resized_height // 2), angle, 1.0)
-            rotated = cv2.warpAffine(resized_image, matrix, (resized_width, resized_height), flags=cv2.INTER_LINEAR)
-            masked = cv2.bitwise_and(rotated, circular_mask)
-            
-            # Place the masked images on the canvas
-            offset = i * (resized_width + space_between)
-            stereoscopic_image[:, offset:offset+resized_width] = masked
+    frame_queue = queue.Queue(maxsize=2)  # Use a small maxsize to prevent lag
+    capture_thread = threading.Thread(target=frame_capture_worker, args=(picamera2, frame_queue))
+    capture_thread.daemon = True
+    capture_thread.start()
 
-        cv2.imshow('Stereoscopic Simulation', stereoscopic_image)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+    try:
+        while True:
+            if not frame_queue.empty():
+                frame = frame_queue.get()
 
-    picamera2.stop()
-    cv2.destroyAllWindows()
+                # Shift images for pseudo-3D effect
+                left_image = shift_image(frame, -shift_amount)
+                right_image = shift_image(frame, shift_amount)
+
+                separator = np.zeros((360, separator_width, 3), dtype=np.uint8)
+                vr_frame = np.hstack((left_image, separator, right_image))
+
+                cv2.imshow('VR View', vr_frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+    finally:
+        picamera2.stop()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
